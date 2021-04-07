@@ -1,0 +1,593 @@
+// Common
+var socket = io.connect();
+var room = null;
+var gender;
+
+var clothes = {
+  manuel: {
+    top: ["Grey Solid Tshirt", "Roadster Striped Tshirt"],
+    bottom: ["Blue Rugged Jeans", "Blue Navy Shorts"],
+    foot: ["White Sneakers", "Red High Ankle Shoes"],
+  },
+  stacy: {
+    top: ["Striped Sweater", "Floral Shirt"],
+    bottom: ["Black Jaggings", "Blue Denim Jeans"],
+    foot: ["Pink Running Shoes", "Grey Boots"],
+  },
+};
+
+var name;
+
+// // Video Call
+// let mic_switch = true;
+// let video_switch = true;
+// var isChannelReady = false;
+// var isInitiator = false;
+// var isStarted = false;
+// var localStream;
+// var pc;
+// var remoteStream;
+// var remoteUserName;
+// var usersAlreadyPresent;
+// var userIndex = -1;
+// var remoteUser;
+// var currentUser;
+// var localVideo;
+// var constraints = {
+//   audio: true,
+//   video: {
+//     width: 320,
+//     height: 240,
+//   },
+// };
+
+// Chat + Model
+$(document).ready(() => {
+  $("body").height($(window).height());
+  $("body").width($(window).width());
+
+  $("#dresser").hide();
+  $("#name").focus();
+
+  $("form").submit(function (event) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  });
+
+  $("#join").click(function () {
+    console.log("clicked");
+    name = $("#name").val();
+    room = $("#room").val();
+
+    if ($("#radioBut1").is(":checked")) {
+      console.log("Name is", name);
+
+      if (name != "" && room != "") {
+        socket.emit("join", name, room);
+        $("#login").detach();
+        $("#dresser").show();
+        ready = true;
+      }
+    } else {
+      if (name != "" && room != "") {
+        socket.emit(
+          "create",
+          name,
+          room,
+          $("#selectModelForm option:selected").val()
+        );
+        $("#login").detach();
+        $("#dresser").show();
+        ready = true;
+      }
+    }
+  });
+
+  $("#name").keypress(function (e) {
+    if (e.which == 13) {
+      var name = $("#name").val();
+      var room = $("#room").val();
+      if (name != "" && room != "") {
+        socket.emit("join", name, room);
+        ready = true;
+        $("#login").detach();
+        $("#dresser").show();
+      }
+    }
+  });
+
+  socket.on("room-not-found", function () {
+    alert("Sorry, room you are looking for not found!");
+    window.location.reload();
+  });
+
+  socket.on("room-already-exists", function () {
+    alert("Sorry, room you are creating already exists!");
+    window.location.reload();
+  });
+
+  socket.on("update", function (msg) {
+    if (ready) $("#msgs").append('<p class="message">' + msg + "</p>");
+  });
+
+  socket.on("update-people", function (people) {
+    if (ready) {
+      $("#people").empty();
+      people.forEach(function (name) {
+        $("#people").append("<li>" + name + "</li>");
+      });
+    }
+  });
+});
+
+(function () {
+  // Set our main variables
+  let scene,
+    renderer,
+    camera,
+    model, // Our character
+    neck, // Reference to the neck bone in the skeleton
+    waist, // Reference to the waist bone in the skeleton
+    possibleAnims, // Animations found in our file
+    mixer, // THREE.js animations mixer
+    idle, // Idle, the default state our character returns to
+    clock = new THREE.Clock(), // Used for anims, which run to a clock instead of frame rate
+    currentlyAnimating = false, // Used to check whether characters neck is being used in another anim
+    raycaster = new THREE.Raycaster(), // Used to detect the click on our character
+    loaderAnim = document.getElementById("js-loader");
+  const avatarWindow = $(".avatar");
+
+  init();
+
+  $("#clothes-btn").on("click", function () {
+    // console.log(this.id);
+
+    var texture =
+      "top" +
+      $("#top-select option:selected").val() +
+      "bottom" +
+      $("#bottom-select option:selected").val() +
+      "foot" +
+      $("#foot-select option:selected").val();
+    socket.emit("change-clothes", texture);
+    console.log(texture);
+  });
+
+  socket.on("loadClothes", function (model, texture) {
+    console.log(model, texture);
+    // console.log()
+    if ($("#top-select").html().trim() === "") {
+      var list = "";
+      for (var i = 1; i <= clothes[model].top.length; i++) {
+        list =
+          list + `<option value=${i}>${clothes[model].top[i - 1]}</option>`;
+      }
+      $("#top-select").html(list);
+
+      list = "";
+      for (var i = 1; i <= clothes[model].bottom.length; i++) {
+        list =
+          list + `<option value=${i}>${clothes[model].bottom[i - 1]}</option>`;
+      }
+      $("#bottom-select").html(list);
+
+      list = "";
+      for (var i = 1; i <= clothes[model].foot.length; i++) {
+        list =
+          list + `<option value=${i}>${clothes[model].foot[i - 1]}</option>`;
+      }
+      $("#foot-select").html(list);
+    }
+
+    var prev = scene.getObjectByName("clothModel");
+    scene.remove(prev, function (err) {
+      console.log(err);
+    });
+
+    let stacy_txt = new THREE.TextureLoader().load(
+      `model/${model}/tex/${texture}.jpg`
+    );
+    console.log(`model/${model}/tex/${texture}.jpg`);
+    stacy_txt.flipY = false;
+
+    const stacy_mtl = new THREE.MeshPhongMaterial({
+      map: stacy_txt,
+      color: 0xffffff,
+      skinning: true,
+    });
+
+    const MODEL_PATH = `model/${model}/${model}.glb`;
+
+    var loader = new THREE.GLTFLoader();
+
+    loader.load(
+      MODEL_PATH,
+      function (gltf) {
+        model = gltf.scene;
+        let fileAnimations = gltf.animations;
+
+        model.traverse((o) => {
+          // console.log(o);
+          if (o.isMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+            o.material = stacy_mtl;
+          }
+          // Reference the neck and waist bones
+          if (o.isBone && o.name === "mixamorigNeck") {
+            neck = o;
+          }
+          if (o.isBone && o.name === "mixamorigSpine") {
+            waist = o;
+          }
+        });
+
+        model.scale.set(10, 10, 10);
+        model.position.y = -11;
+        model.name = "clothModel";
+
+        // console.log(model);
+
+        scene.add(model);
+
+        mixer = new THREE.AnimationMixer(model);
+
+        let clips = fileAnimations.filter((val) => val.name !== "idle");
+        possibleAnims = clips.map((val) => {
+          let clip = THREE.AnimationClip.findByName(clips, val.name);
+
+          clip.tracks.splice(3, 3);
+          clip.tracks.splice(9, 3);
+
+          clip = mixer.clipAction(clip);
+          return clip;
+        });
+        // console.log(possibleAnims);
+
+        let idleAnim = THREE.AnimationClip.findByName(fileAnimations, "idle");
+
+        idleAnim.tracks.splice(3, 3);
+        idleAnim.tracks.splice(9, 3);
+
+        idle = mixer.clipAction(idleAnim);
+        idle.play();
+      },
+      undefined, // We don't need this function
+      function (error) {
+        console.error(error);
+      }
+    );
+  });
+
+  function init() {
+    const canvas = document.querySelector("#c");
+    const backgroundColor = 0x0f0c29;
+
+    // Init the scene
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(backgroundColor);
+    scene.fog = new THREE.Fog(backgroundColor, 80, 100);
+
+    // Init the renderer
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(window.devicePixelRatio);
+    avatarWindow.append(renderer.domElement);
+
+    // Add a
+
+    camera = new THREE.PerspectiveCamera(
+      50,
+      avatarWindow.innerWidth() / avatarWindow.innerHeight(),
+      0.1,
+      1000
+    );
+
+    camera.position.z = 30;
+    camera.position.x = 0;
+    camera.position.y = -3;
+
+    // Add lights
+    let hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.61);
+    hemiLight.position.set(0, 50, 0);
+    // Add hemisphere light to scene
+    scene.add(hemiLight);
+
+    let d = 8.25;
+    let dirLight = new THREE.DirectionalLight(0xffffff, 0.54);
+    dirLight.position.set(-8, 12, 8);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize = new THREE.Vector2(1024, 1024);
+    // dirLight.shadow.camera.near = 0.1;
+    // dirLight.shadow.camera.far = 1500;
+    // dirLight.shadow.camera.left = d * -1;
+    // dirLight.shadow.camera.right = d;
+    // dirLight.shadow.camera.top = d;
+    // dirLight.shadow.camera.bottom = d * -1;
+    // // Add directional Light to scene
+    scene.add(dirLight);
+
+    // Floor
+    let floorGeometry = new THREE.PlaneGeometry(5000, 5000, 1, 1);
+    let floorMaterial = new THREE.MeshPhongMaterial({
+      color: 0x302b63,
+      shininess: 0,
+    });
+
+    let floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -0.5 * Math.PI;
+    floor.receiveShadow = true;
+    floor.position.y = -11;
+    scene.add(floor);
+
+    // let geometry = new THREE.SphereGeometry(8, 32, 32);
+    // let material = new THREE.MeshBasicMaterial({ color: 0x }); // 0xf2ce2e
+    // let sphere = new THREE.Mesh(geometry, material);
+
+    // sphere.position.z = -15;
+    // sphere.position.y = -2.5;
+    // sphere.position.x = -0.25;
+    // scene.add(sphere);
+
+    loaderAnim.remove();
+  }
+
+  function update() {
+    if (mixer) {
+      mixer.update(clock.getDelta());
+    }
+
+    if (resizeRendererToDisplaySize(renderer)) {
+      const canvas = renderer.domElement;
+      camera.aspect = canvas.clientWidth / canvas.clientHeight;
+      camera.updateProjectionMatrix();
+    }
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(update);
+  }
+
+  update();
+
+  function resizeRendererToDisplaySize(renderer) {
+    const canvas = renderer.domElement;
+    let width = avatarWindow.innerWidth();
+    let height = avatarWindow.innerHeight();
+
+    let canvasPixelWidth = canvas.width / window.devicePixelRatio;
+    let canvasPixelHeight = canvas.height / window.devicePixelRatio;
+
+    // console.log(canvas.height, height-6 );
+
+    const needResize =
+      canvasPixelWidth !== width || canvasPixelHeight !== height - 6;
+    if (needResize) {
+      renderer.setSize(width, height, false);
+    }
+    return needResize;
+  }
+
+  // window.addEventListener('click', e => raycast(e));
+  // window.addEventListener('touchend', e => raycast(e, true));
+
+  $("#c").on("click", function () {
+    if (!currentlyAnimating) {
+      currentlyAnimating = true;
+      playOnClick();
+    }
+  });
+
+  setInterval(playOnClick, 7000);
+
+  // Get a random animation, and play it
+  function playOnClick() {
+    let anim = Math.floor(Math.random() * possibleAnims.length) + 0;
+    playModifierAnimation(idle, 0.25, possibleAnims[anim], 0.25);
+  }
+
+  function playModifierAnimation(from, fSpeed, to, tSpeed) {
+    to.setLoop(THREE.LoopOnce);
+    to.reset();
+    to.play();
+    from.crossFadeTo(to, fSpeed, true);
+    setTimeout(function () {
+      from.enabled = true;
+      to.crossFadeTo(from, tSpeed, true);
+      currentlyAnimating = false;
+    }, to._clip.duration * 1000 - (tSpeed + fSpeed) * 1000);
+  }
+
+  // Wait for socket to get it's id.
+  function setupEvents() {
+    navigator.mediaDevices.getUserMedia(constraints).then(gotStream);
+  }
+
+  function interactUser() {
+    userIndex++;
+    console.log(userIndex);
+    if (usersAlreadyPresent && usersAlreadyPresent.length > userIndex) {
+      remoteUser = usersAlreadyPresent[userIndex];
+    }
+  }
+
+  function maybeStart() {
+    console.log(
+      ">>>>>>> maybeStart() ",
+      isStarted,
+      localStream,
+      isChannelReady
+    );
+    if (!isStarted && typeof localStream !== "undefined" && isChannelReady) {
+      console.log(">>>>>> creating peer connection");
+      createPeerConnection();
+      // pc.addStream(localStream);
+      isStarted = true;
+      console.log("isInitiator", isInitiator);
+      if (isInitiator) {
+        doCall();
+      }
+    }
+  }
+
+  window.onbeforeunload = function () {
+    sendMessage("bye");
+  };
+
+  function createPeerConnection() {
+    try {
+      pc = new RTCPeerConnection({
+        iceServers: [
+          // Information about ICE servers. outlook account
+          // TODO Delete Self Server.
+          {
+            urls: "turn:myntra.westus.cloudapp.azure.com:5349",
+            username: "myntratest",
+            credential: "test12345",
+          },
+        ],
+      });
+      pc.onicecandidate = handleIceCandidate;
+      pc.onaddstream = handleRemoteStreamAdded;
+      pc.onremovestream = handleRemoteStreamRemoved;
+      console.log("Created RTCPeerConnnection");
+    } catch (e) {
+      console.log("Failed to create PeerConnection, exception: " + e.message);
+      alert("Cannot create RTCPeerConnection object.");
+      return;
+    }
+  }
+
+  function handleIceCandidate(event) {
+    console.log("icecandidate event: ", event);
+    if (event.candidate) {
+      sendMessage({
+        type: "candidate",
+        label: event.candidate.sdpMLineIndex,
+        id: event.candidate.sdpMid,
+        candidate: event.candidate.candidate,
+      });
+    } else {
+      console.log("End of candidates.");
+
+      maybeEnd();
+    }
+  }
+
+  // This function should be called when call is complete.
+  // Super Janky function, find a better way to do it.
+  // This will be exponentially poor.
+  function maybeEnd() {
+    // Assuming this will be called after the last step.
+    // Timeout of 3s is set in order to avoid network errors.
+    setTimeout(function () {
+      interactUser();
+
+      if (isInitiator) {
+        isInitiator = true;
+        isStarted = false;
+        isChannelReady = false;
+      } else if (userIndex === usersAlreadyPresent.length) {
+        isInitiator = true;
+        isStarted = false;
+        isChannelReady = false;
+      } else {
+        isInitiator = false;
+        isStarted = false;
+        isChannelReady = true;
+        sendMessage({ type: "init" });
+      }
+    }, 3000);
+  }
+
+  function handleCreateOfferError(event) {
+    console.log("createOffer() error: ", event);
+  }
+
+  function doCall() {
+    console.log("Sending offer to peer");
+    pc.createOffer()
+      .then(function (offer) {
+        return pc.setLocalDescription(offer);
+      })
+      .then(function () {
+        var offer = pc.localDescription;
+        offer.fromInitiator = isInitiator;
+        sendMessage(offer);
+      })
+      .catch(handleCreateOfferError);
+  }
+
+  function doAnswer() {
+    console.log("Sending answer to peer.");
+    pc.createAnswer()
+      .then(function (answer) {
+        return pc.setLocalDescription(answer);
+      })
+      .then(function () {
+        var answer = pc.localDescription;
+        answer.fromInitiator = isInitiator;
+        sendMessage(answer);
+      })
+      .catch(onCreateSessionDescriptionError);
+  }
+
+  function onCreateSessionDescriptionError(error) {
+    trace("Failed to create session description: " + error.toString());
+  }
+
+  function handleRemoteStreamAdded(event) {
+    console.log("Remote stream added.");
+    remoteStream = event.stream;
+
+    var remoteContainer = document.createElement("div");
+    remoteContainer.setAttribute("class", "remote-video-container");
+    remoteContainer.setAttribute("id", "user-" + remoteUser);
+
+    var remoteVideo = document.createElement("video");
+    remoteVideo.autoplay = true;
+    remoteVideo.playsinline = true;
+    remoteVideo.srcObject = remoteStream;
+
+    var remoteName = document.createElement("h5");
+    remoteName.textContent = remoteUserName;
+
+    remoteContainer.appendChild(remoteVideo);
+    remoteContainer.appendChild(remoteName);
+
+    document.getElementById("videos").appendChild(remoteContainer);
+  }
+
+  // TODO This function hasn't fired in testing yet, so the variables change might be buggy.
+  function handleRemoteStreamRemoved(event) {
+    // console.error("Triggered??");
+    console.log("Remote stream removed. Event: ", event);
+    // isInitiator = false;
+    // isChannelReady = false;
+    // isStarted = false;
+  }
+
+  function hangup() {
+    console.log("Hanging up.");
+    stop();
+    sendMessage("bye");
+  }
+
+  function handleRemoteHangup() {
+    console.log("Session terminated.");
+    stop();
+  }
+
+  function stop() {
+    isInitiator = false;
+    isStarted = false;
+    isChannelReady = false;
+    usersAlreadyPresent = undefined;
+    userIndex = -1;
+    remoteUser = undefined;
+    remoteUserName = undefined;
+    currentUser = undefined;
+
+    pc.close();
+    pc = null;
+  }
+})();
