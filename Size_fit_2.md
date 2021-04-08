@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
 
-This is the second component of our solution for **MyntraHackerramp: WeForShe** for the theme- **Size and Fit**. 
+This is the second component of our solution: **YourFit** for **MyntraHackerramp: WeForShe** , theme- **Size and Fit**. 
 The first and the main component can be found here - [**SizeFit_1**](https://github.com/Ridam2k/size_fit_1.git)
 
 Before going further please see the demo - ****Insert Video****

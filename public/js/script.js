@@ -18,6 +18,20 @@ var clothes = {
 
 var name;
 
+/// get computed style for image
+var img = document.getElementById("c");
+var cs = getComputedStyle(img);
+
+/// these will return dimensions in *pixel* regardless of what
+/// you originally specified for image:
+var width = parseInt(cs.getPropertyValue("width"), 10);
+var height = parseInt(cs.getPropertyValue("height"), 10);
+
+/// now use this as width and height for your canvas element:
+var canvas = document.getElementById("c");
+
+canvas.width = width;
+canvas.height = height;
 // // Video Call
 // let mic_switch = true;
 // let video_switch = true;
