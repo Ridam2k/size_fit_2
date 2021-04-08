@@ -1,51 +1,41 @@
-# Myntra Hackerramp
+﻿# Team Her-ricanes: SizeFit_2
 
-Platform to visualize clothes on a 3d model and search them online.
+[![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
 
-## Motivation
+This is the second component of our solution for **MyntraHackerramp: WeForShe** for the theme- **Size and Fit**. 
+The first and the main component can be found here - [**SizeFit_1**](https://github.com/Ridam2k/size_fit_1.git)
 
-In the realm of Fashion, change is the only constant. Style statement is extremely volatile and changes frequently. In such a scenario, it gets extremely difficult to keep track of the terms used for various apparels just arrived into town. Moreover, online shopping offers nearly no collaborative aid to interact with our friends and families to seek their advice on what to choose.
-How can we enhance user shopping experience and bridge the gap between users by making the workflow of suggestions and recommendations as smooth as possible?
+Before going further please see the demo - ****Insert Video****
+The detailed explanation regarding tech stack and training can be found at : ***PPT LINK***
 
-## Our Solution
+# Component Description
 
-We intend to propose a solution in the form a collaborative platform where a number of users come together to interact with each other and can customize a 3D avatar using simple operations like select and drag & drop from a cascade of trending looks and outfits provided.
-Once they are done, our platform will provide them with various shopping links that redirect them to the desired apparel they’ve been having in mind.
+This component leverages Unity3D and JS libraries to visualise various clothing items on models thereby enabling the user to experiment with their outfit ideas.
 
-## Getting Started
+# Installation
 
-These instructions will get you a copy of the project up and running on your local machine for development.
+We have tried to keep the installation process as simple as possible. Please keep note of the following requirements and points:
+- This section mentions the instructions only for the installation of this component. For the installtion and usage of the complete project please head to : [Size_fit_1](https://github.com/Ridam2k/size_fit_1.git)
+- Please follow the exact steps.The App is tested and verified only if each step is followed.
 
-### Prerequisites
-
-Things you need to run the app.
-
-```
-NodeJS
-MongoDB (optional, add cloud url to mongoDBURI variable in app.js)
-```
-
-### Installing
-
-A step by step series to get a development env running. Clone the repository and follow the instructions below:
-
-1. Setup socket and webrtc server
-
+Step 1 - Open command prompt and clone this Repository.
 ```sh
-npm install
-npm start
+$ git clone https://github.com/Ridam2k/size_fit_2.git
+$ cd size_fit_2
 ```
-
-2. Setup search results server
-
+Step 2- Install necessary packages
 ```sh
-cd server
-npm install
-npm start
+$ npm install
 ```
+Step 3- Run the project
+```sh
+$ npm start
+```
+That's all you need for installing this component. We strongly advise you to run the complete project at :[Size_fit_1](https://github.com/Ridam2k/size_fit_1.git) and experience this component in culmination with our website.
 
-3. Head to the "http://localhost:5000" to load the index page.
+To see this particular component in action, go to  http://127.0.0.1:5000/  
 
-## License
+# That’s it !
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+Team Her-ricanes 
+NSUT, Delhi
