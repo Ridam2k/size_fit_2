@@ -5,9 +5,6 @@
 This is the second component of our solution: **YourFit** for **MyntraHackerramp: WeForShe** , theme- **Size and Fit**. 
 The first and the main component can be found here - [**SizeFit_1**](https://github.com/Ridam2k/size_fit_1.git)
 
-Before going further please see the demo - ****Insert Video****
-The detailed explanation regarding tech stack and training can be found at : ***PPT LINK***
-
 # Component Description
 
 This component leverages Unity3D and JS libraries to visualise various clothing items on models thereby enabling the user to experiment with their outfit ideas.
